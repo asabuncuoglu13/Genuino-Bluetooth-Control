@@ -1,59 +1,53 @@
 #include <CurieBLE.h>
 #include "CurieIMU.h"
 
+// humidity sensor pins
 byte humidity_sensor_pin = A0;
 byte humidity_sensor_vcc = 6;
+
+// pumping motor pins
 const int motorPin1  = 10; // Pin  7 of L293
 const int motorPin2  = 9;  // Pin  2 of L293
 
+const int ledPin = 13; // pin to use for the LED
+const int waterPin = 12;
+
+// BLE Service for connecting Android Device
 BLEService ledService("19B10000-E8F2-537E-4F6C-D104768A1214"); // BLE LED Service
-//BLEService humidityService("29e70001-9227-e097-3473-09a5cc69a43a"); // BLE LED Service
 
 // BLE LED Switch Characteristic - custom 128-bit UUID, read and writable by central
 BLEUnsignedCharCharacteristic ledCharacteristic("19B10001-E8F2-537E-4F6C-D104768A1214", BLERead | BLEWrite);
 BLEUnsignedCharCharacteristic humidCharacteristic("29e70002-9227-e097-3473-09a5cc69a43a", BLERead | BLEWrite);
 
-const int ledPin = 13; // pin to use for the LED
-const int waterPin = 12;
-
 void setup() {
+  //Start serial communication
   Serial.begin(9600);
   Serial.print("The device is on!");
 
+  // Output all the pins
   pinMode(motorPin1, OUTPUT);
   pinMode(motorPin2, OUTPUT);
-
+  pinMode(ledPin, OUTPUT);
   pinMode(humidity_sensor_vcc, OUTPUT);
   pinMode(waterPin, OUTPUT);
+
+  // set initial states
   digitalWrite(humidity_sensor_vcc, LOW);
   digitalWrite(waterPin, LOW);
-
-  // set LED pin to output mode
-  pinMode(ledPin, OUTPUT);
-
-  CurieIMU.begin();
-
-  // Set the accelerometer range to 250 degrees/second
-  CurieIMU.setAccelerometerRange(2);
 
   // begin initialization
   BLE.begin();
 
   // set advertised local name and service UUID:
   BLE.setLocalName("Farm");
-  //BLE.setAdvertisedService(humidityService);
   BLE.setAdvertisedService(ledService);
 
-
   // add the characteristic to the service
-  //humidityService.addCharacteristic(humidCharacteristic);
   ledService.addCharacteristic(humidCharacteristic);
   ledService.addCharacteristic(ledCharacteristic);
 
   // add service
-  //BLE.addService(humidityService);
   BLE.addService(ledService);
-
 
   // set the initial value for the characeristic:
   ledCharacteristic.setValue(0);
@@ -61,10 +55,10 @@ void setup() {
 
   // start advertising
   BLE.advertise();
-
   Serial.println("BLE LED-Humid Peripheral");
 }
 
+// read function for humidity sensor
 int read_humidity_sensor() {
   digitalWrite(humidity_sensor_vcc, HIGH);
   delay(500);
@@ -81,16 +75,7 @@ void printHumidityValue() {
 }
 
 void loop() {
-  float ax, ay, az;  
   // listen for BLE peripherals to connect:
-  CurieIMU.readAccelerometerScaled(ax, ay, az);
-  Serial.print("a:\t");
-  Serial.print(ax);
-  Serial.print("\t");
-  Serial.print(ay);
-  Serial.print("\t");
-  Serial.print(az);
-  Serial.println();
   BLEDevice central = BLE.central();
 
   // if a central is connected to peripheral:
